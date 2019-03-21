@@ -12,14 +12,27 @@ struct Position
 
 int main()
 {
+	// Create allocator with 50B of memory
 	Allocator alloc(50);
-	strcpy(alloc.start, "hello there");
+	// Allocate space for an object of type Position
 	Position* pos = alloc.allocate<Position>();
-	output(pos->x);
+	// Read and write to that object - it works!
 	pos->y = 11;
-	output(pos->y);
-	// for(int i = 0; i < 5; i++)
-	// {
-	// 	std::cout << alloc.start[i] << "\n";
-	// }
+	// Allocate space for a second Position object. That works too!
+	Position* pos2 = alloc.allocate<Position>();
+	pos2->x = 22;
+
+	alloc.free<Position>(pos);
+	for(auto i : alloc.freeFragments)
+	{
+		output(i.size);
+	}
+	output("\n\n");
+	alloc.free<Position>(pos2);
+	// output(alloc.freeFragments[0].size);
+	// output(alloc.freeFragments[1].size);
+	for(auto i : alloc.freeFragments)
+	{
+		output(i.size);
+	}
 }
