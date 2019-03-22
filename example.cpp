@@ -7,10 +7,6 @@ struct Position
 {
 	int x;
 	int y;
-	void test()
-	{
-		output("methods work");
-	}
 };
 
 int main()
@@ -24,12 +20,10 @@ int main()
 		pos->x = 20;
 		pos->y = 10;
 		positions[i] = pos;
-		positions[i]->test();
 	}
-	output("");
 	for(int i = 9; i > -1; i--)
 	{
-		output(alloc.freeFragments.size()); // Stays one - free space is combined
 		alloc.free<Position>(positions[i]);
 	}
+	print(alloc.freeBlocks[0].size);
 }
