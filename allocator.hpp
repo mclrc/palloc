@@ -42,7 +42,7 @@ struct Allocator
 				// Create a pointer to the start of that space
 				pointer = (T*)block.start;
 				// Move the start of the space so it no longer includes the now used space
-				block.start += sizeof(T);
+				block.start = (char*)block.start + sizeof(T);
 				// Decrease the size of the space
 				block.size -= sizeof(T);
 				// If the space is empty, remove it from the vector
@@ -70,9 +70,10 @@ struct Allocator
 			output("[!] This pointer is null");
 			return;
 		}
-		if(!((T*)start <= pointer) || (T*)(start + sizeof(T)) < pointer)
+		if((char*)pointer < start || (char*)start + totalSize < (char*)pointer)// if(!((char*)start <= (char*)pointer) || (char*)start + sizeof(T) < (char*)pointer)
 		{
 			output("[!] This was not allocated using this allocator");
+			return;
 		}
 
 		// Describe the space being freed
@@ -81,7 +82,7 @@ struct Allocator
 		for(int i = 0; i < freeFragments.size(); i++)
 		{
 			MemoryBlock fragment = freeFragments[i];
-			if((T*)fragment.start + fragment.size == (T*)target.start)
+			if((char*)fragment.start + fragment.size == (char*)target.start)
 			{
 				output("Preceeding space found");
 				// This space directly preceeds whats being freed now
@@ -89,14 +90,16 @@ struct Allocator
 				target.start = fragment.start;
 				target.size += fragment.size;
 				freeFragments.erase(freeFragments.begin() + i);
+				i -= 1;
 
-			} else if(fragment.start == target.start + target.size)
+			} else if((char*)fragment.start == (char*)target.start + target.size)
 			{
 				output("proceeding space found");
 				// This space directly proceeds whats being freed
 				// Erase the proceeding block from the vector and extend the one being freed to include it
 				target.size += fragment.size;
 				freeFragments.erase(freeFragments.begin() + i);
+				i -= 1;
 				//freeFragments.push_back({pointer, sizeof(T)});
 			}
 		}
