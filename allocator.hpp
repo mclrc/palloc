@@ -16,6 +16,7 @@ struct Allocator
 	char* start;
 	// Total size of the buffer
 	size_t totalSize;
+	size_t used;
 	// A vector of MemoryBlocks that describe the free areas of the buffer
 	std::vector<MemoryBlock> freeBlocks;
 
@@ -28,27 +29,37 @@ struct Allocator
 		freeBlocks.push_back({start, size});
 
 	}
+
+	
 	template <typename T>
-	T* allocate()
+	T* allocate(T data = T())
 	{
-		T* pointer = NULL;
+		T* pointer = (T*)allocate(sizeof(T));
+		memcpy(pointer, &data, sizeof(T));
+		return pointer;
+	}
+	// Overload for allocating memory based on size, not data type
+	void* allocate(size_t amount)
+	{
+		void* pointer = NULL;
 		for(int i = 0; i < freeBlocks.size(); i++)
 		{
 			// Check for free space in memory that is of sufficient size
 			MemoryBlock& block = freeBlocks[i];
-			if(block.size >= sizeof(T))
+			if(block.size >= amount)
 			{
 				// Create a pointer to the start of that block
-				pointer = (T*)block.start;
+				pointer = block.start;
 				// Move the start of the block so it no longer includes the now used space
-				block.start = (char*)block.start + sizeof(T);
+				block.start = (char*)block.start + amount;
 				// Decrease the size of the block
-				block.size -= sizeof(T);
+				block.size -= amount;
 				// If the block is empty, remove it from the vector
 				if(block.size == 0)
 				{
 					freeBlocks.erase(freeBlocks.begin() + i);
 				}
+				used += amount;
 				// Break out of the loop
 				break;
 			}
@@ -56,10 +67,12 @@ struct Allocator
 		// If no space was found, print a warning
 		if(pointer == NULL)
 		{
-			print("[!] CRITICAL: Not enough concurrent memory left to store data of that type");
+			print("[!] CRITICAL: Not enough concurrent memory left to store this amount of data");
 		}
 		return pointer;
 	}
+
+
 	template <typename T>
 	void free(T* pointer)
 	{
@@ -75,8 +88,24 @@ struct Allocator
 			return;
 		}
 
+		// Try calling the saved elements constructor
+		pointer->~T();
+		free((void*)pointer, sizeof(T));
+	}
+	void free(void* start, size_t amount)
+	{
+		if(start == NULL)
+		{
+			print("[!] This pointer is null");
+			return;
+		}
+		if((char*)start < start || (char*)start + totalSize < (char*)start || (char*)start + amount > this->start + totalSize)
+		{
+			print("[!] This was not allocated using this allocator or the specified data is incorrect");
+			return;
+		}
 		// Describe the block being freed
-		MemoryBlock target = {pointer, sizeof(T)};
+		MemoryBlock target = {start, amount};
 		// Loop to all the blocks to find the free block thats potentially in front of / behind the block being freed
 		for(int i = 0; i < freeBlocks.size(); i++)
 		{
@@ -100,6 +129,7 @@ struct Allocator
 				//freeBlocks.push_back({pointer, sizeof(T)});
 			}
 		}
+		used -= amount;
 		freeBlocks.push_back(target);
 	}
 };

@@ -7,23 +7,33 @@ struct Position
 {
 	int x;
 	int y;
+
+	Position(int x = 0, int y = 0) : x(x), y(y) {}
+	~Position()
+	{
+		print("destructor called");
+	}
 };
 
 int main()
 {
-	Position* positions[10] = {};
-	Allocator alloc(sizeof(Position) * 10);
+	Allocator alloc(100);
+
+	Position* pos = alloc.allocate<Position>();
+
+	print(pos->x);
+	print(pos->y);
+
+	alloc.free<Position>(pos);
+
+	int* test = alloc.allocate<int>(5);
+	alloc.free(test, sizeof(int));
+
+	int* testarray = (int*)alloc.allocate(sizeof(int) * 10);
 
 	for(int i = 0; i < 10; i++)
 	{
-		Position* pos = alloc.allocate<Position>();
-		pos->x = 20;
-		pos->y = 10;
-		positions[i] = pos;
+		testarray[i] = i;
+		print(testarray[i]);
 	}
-	for(int i = 9; i > -1; i--)
-	{
-		alloc.free<Position>(positions[i]);
-	}
-	print(alloc.freeBlocks[0].size);
 }
