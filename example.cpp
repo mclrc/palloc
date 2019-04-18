@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "allocator.hpp"
+#define cout(x) std::cout << x << "\n";
 
 struct Position
 {
@@ -11,7 +12,7 @@ struct Position
 	Position(int x = 0, int y = 0) : x(x), y(y) {}
 	~Position()
 	{
-		print("destructor called");
+		std::cout << "dest" << "\n";
 	}
 };
 
@@ -20,20 +21,5 @@ int main()
 	Allocator alloc(100);
 
 	Position* pos = alloc.allocate<Position>();
-
-	print(pos->x);
-	print(pos->y);
-
-	alloc.free<Position>(pos);
-
-	int* test = alloc.allocate<int>(5);
-	alloc.free(test, sizeof(int));
-
-	int* testarray = (int*)alloc.allocate(sizeof(int) * 10);
-
-	for(int i = 0; i < 10; i++)
-	{
-		testarray[i] = i;
-		print(testarray[i]);
-	}
+	alloc.free(pos);
 }

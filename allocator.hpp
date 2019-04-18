@@ -1,11 +1,14 @@
+#pragma once
 #include <iostream>
 #include <stdlib.h>
 #include <map>
 #include <vector>
+#include <algorithm>
 #define print(x) std::cout << x << "\n";
 
 struct MemoryBlock
 {
+	MemoryBlock(void* s, size_t a) : start(s), size(a) {}
 	void* start;
 	size_t size;
 };
@@ -19,6 +22,8 @@ struct Allocator
 	size_t used;
 	// A vector of MemoryBlocks that describe the free areas of the buffer
 	std::vector<MemoryBlock> freeBlocks;
+	// A vector of MemoryBlocks to keep track of allocations
+	std::vector<MemoryBlock> allocations;
 
 	Allocator(size_t size)
 	{
@@ -27,12 +32,11 @@ struct Allocator
 		start = (char*)malloc(size);
 		// Push the first MemoryBlock to the vector describing the entire buffer, because its all free
 		freeBlocks.push_back({start, size});
-
 	}
 
 	
 	template <typename T>
-	T* allocate(T data = T())
+	T* allocate(T data = NULL)
 	{
 		T* pointer = (T*)allocate(sizeof(T));
 		memcpy(pointer, &data, sizeof(T));
@@ -69,28 +73,8 @@ struct Allocator
 		{
 			print("[!] CRITICAL: Not enough concurrent memory left to store this amount of data");
 		}
+		allocations.push_back(MemoryBlock((void*)pointer, amount));
 		return pointer;
-	}
-
-
-	template <typename T>
-	void free(T* pointer)
-	{
-		// Check if the pointer is either null or doesnt belong to this allocator
-		if(pointer == NULL)
-		{
-			print("[!] This pointer is null");
-			return;
-		}
-		if((char*)pointer < start || (char*)start + totalSize < (char*)pointer)
-		{
-			print("[!] This was not allocated using this allocator");
-			return;
-		}
-
-		// Try calling the saved elements constructor
-		pointer->~T();
-		free((void*)pointer, sizeof(T));
 	}
 	void free(void* start, size_t amount)
 	{
@@ -131,5 +115,25 @@ struct Allocator
 		}
 		used -= amount;
 		freeBlocks.push_back(target);
+		for(int i = 0; i < allocations.size(); i++)
+		{
+			if(allocations[i].start == start)
+			{
+				print("deleted allocation");
+				allocations.erase(allocations.begin() + i);
+			}
+		}
+		std::sort(freeBlocks.begin(), freeBlocks.end(), [](MemoryBlock a, MemoryBlock b){ return a.start < b.start;});
+	}
+	void free(void* pointer)
+	{
+		for(auto a : allocations)
+		{
+			if((void*)a.start == pointer)
+			{
+				free(a.start, a.size);
+				return;
+			}
+		}
 	}
 };
